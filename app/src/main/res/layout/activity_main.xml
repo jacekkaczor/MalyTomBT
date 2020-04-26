@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center_horizontal"
+    tools:context=".MainActivity">
+
+    <TextView
+        android:id="@+id/bluetoothStatusTv"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:padding="5dp"
+        android:textAlignment="center"
+        android:textColor="#000"
+        android:textSize="20sp"
+        android:gravity="center_horizontal"/>
+
+    <ImageView
+        android:id="@+id/bluetoothIv"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:src="@drawable/ic_bluetooth_off"/>
+
+    <Button
+        android:id="@+id/turnOnOffBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        style="@style/Widget.AppCompat.Button.Colored"
+        android:text="Turn On"
+        android:minWidth="200dp"
+        android:onClick="turnOnOffBtnOnClick"/>
+
+    <TextView
+        android:id="@+id/devicesTv"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textAlignment="viewStart"
+        android:padding="5dp"
+        android:textColor="#000"
+        android:textSize="20sp"
+        android:gravity="center_horizontal"/>
+
+    <ListView
+        android:id="@+id/devicesLv"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+</LinearLayout>
