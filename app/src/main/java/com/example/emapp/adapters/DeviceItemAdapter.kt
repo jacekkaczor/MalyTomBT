@@ -31,7 +31,7 @@ class DeviceItemAdapter : BaseAdapter {
             vh = view.tag as ViewHolder
         }
 
-        vh.deviceName.text = devicesList[position].name +" ("+devicesList[position].device+")"
+        vh.deviceName.text = devicesList[position].name +" ("+devicesList[position].deviceAddress+")"
         if (devicesList[position].registered) {
             vh.subtext.text = "Registered"
         } else {

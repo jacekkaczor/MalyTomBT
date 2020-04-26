@@ -11,25 +11,28 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Handler
+import android.util.Log
 import android.view.View
-import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.example.emapp.adapters.DeviceItemAdapter
 import com.example.emapp.model.Device
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.android.synthetic.main.activity_main.*
 
 
 class MainActivity : AppCompatActivity() {
 
     private val REQUEST_CODE_ENABLE_BT: Int = 1
-    private val MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION = 1
+    private val MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION = 2
+    private val TAG_FIREBASE = "Firebase"
     lateinit var bAdapter: BluetoothAdapter
     var hasBluetooth: Boolean = false
     var discoveryDevicesList = ArrayList<Device>()
     var devicesList = ArrayList<Device>()
     lateinit var deviceAdapter: DeviceItemAdapter
+    private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,6 +62,8 @@ class MainActivity : AppCompatActivity() {
             deviceAdapter = DeviceItemAdapter(this, devicesList)
             devicesLv.adapter = deviceAdapter
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION), MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION)
+            updateShopClient()
+            initShopClientListener()
         } else {
             bluetoothStatusTv.text = "Bluetooth is not supported"
         }
@@ -72,10 +77,7 @@ class MainActivity : AppCompatActivity() {
 
                     //send list to server if changed from previous and display
                     if (!compareList(devicesList, discoveryDevicesList)) {
-                        devicesTv.text = "Devices"
-                        devicesList.clear()
-                        devicesList.addAll(discoveryDevicesList)
-                        deviceAdapter.notifyDataSetChanged()
+                        updateShopClient()
                     }
 
                     //clear discovery list
@@ -87,13 +89,46 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+    private fun updateShopClient() {
+        val shopClient: MutableMap<String, Any> = HashMap()
+        shopClient["devices"] = discoveryDevicesList
+
+        db.collection("Shops").document(bAdapter.name)
+            .set(shopClient)
+            .addOnSuccessListener { Log.d(TAG_FIREBASE,"DocumentSnapshot added with ID: ") }
+            .addOnFailureListener { e -> Log.w(TAG_FIREBASE, "Error adding document", e) }
+    }
+
+    private fun initShopClientListener() {
+        val docRef = db.collection("Shops").document(bAdapter.name)
+        docRef.addSnapshotListener { snapshot, e ->
+            if (e != null) {
+                Log.w(TAG_FIREBASE, "Listen failed.", e)
+                return@addSnapshotListener
+            }
+
+            if (snapshot != null && snapshot.exists()) {
+                Log.d(TAG_FIREBASE, "Current data: ${snapshot.data}")
+                devicesTv.text = "Devices"
+                devicesList.clear()
+                val devices = snapshot.data!!["devices"] as ArrayList<HashMap<String, Any>>
+                devices.forEach {
+                    devicesList.add(Device(it["deviceAddress"] as String, it["name"] as String, it["registered"] as Boolean))
+                }
+                deviceAdapter.notifyDataSetChanged()
+            } else {
+                Log.d(TAG_FIREBASE, "Current data: null")
+            }
+        }
+    }
+
     private val mReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent) {
             val action = intent.action
 
             if (BluetoothDevice.ACTION_FOUND == action) {
                 val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
-                val deviceItem = Device(device, device.name, false)
+                val deviceItem = Device(device.address, device.name, false)
                 if (!discoveryDevicesList.contains(deviceItem))
                     discoveryDevicesList.add(deviceItem)
             }
