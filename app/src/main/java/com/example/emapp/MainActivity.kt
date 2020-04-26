@@ -20,18 +20,22 @@ import com.example.emapp.adapters.DeviceItemAdapter
 import com.example.emapp.model.Device
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.android.synthetic.main.activity_main.*
+import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 
 
 class MainActivity : AppCompatActivity() {
-
+    private var uniqueID: String? = null
+    private val PREF_UNIQUE_ID = "PREF_UNIQUE_ID"
     private val REQUEST_CODE_ENABLE_BT: Int = 1
     private val MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION = 2
     private val TAG_FIREBASE = "Firebase"
-    lateinit var bAdapter: BluetoothAdapter
-    var hasBluetooth: Boolean = false
-    var discoveryDevicesList = ArrayList<Device>()
-    var devicesList = ArrayList<Device>()
-    lateinit var deviceAdapter: DeviceItemAdapter
+    private lateinit var bAdapter: BluetoothAdapter
+    private var hasBluetooth: Boolean = false
+    private var discoveryDevicesList = ArrayList<Device>()
+    private var devicesList = ArrayList<Device>()
+    private lateinit var deviceAdapter: DeviceItemAdapter
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,6 +44,7 @@ class MainActivity : AppCompatActivity() {
         val pm: PackageManager = applicationContext.packageManager
         val handler = Handler()
         hasBluetooth = pm.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH)
+        createOrRetrieveId(applicationContext)
 
         if (hasBluetooth) {
             bAdapter = BluetoothAdapter.getDefaultAdapter()
@@ -92,15 +97,16 @@ class MainActivity : AppCompatActivity() {
     private fun updateShopClient() {
         val shopClient: MutableMap<String, Any> = HashMap()
         shopClient["devices"] = discoveryDevicesList
+        shopClient["name"] = bAdapter.name
 
-        db.collection("Shops").document(bAdapter.name)
+        db.collection("Shops").document(uniqueID!!)
             .set(shopClient)
             .addOnSuccessListener { Log.d(TAG_FIREBASE,"DocumentSnapshot added with ID: ") }
             .addOnFailureListener { e -> Log.w(TAG_FIREBASE, "Error adding document", e) }
     }
 
     private fun initShopClientListener() {
-        val docRef = db.collection("Shops").document(bAdapter.name)
+        val docRef = db.collection("Shops").document(uniqueID!!)
         docRef.addSnapshotListener { snapshot, e ->
             if (e != null) {
                 Log.w(TAG_FIREBASE, "Listen failed.", e)
@@ -169,5 +175,22 @@ class MainActivity : AppCompatActivity() {
                 }
         }
         super.onActivityResult(requestCode, resultCode, data)
+    }
+
+    @Synchronized
+    fun createOrRetrieveId(context: Context): String? {
+        if (uniqueID == null) {
+            val sharedPrefs = context.getSharedPreferences(
+                PREF_UNIQUE_ID, Context.MODE_PRIVATE
+            )
+            uniqueID = sharedPrefs.getString(PREF_UNIQUE_ID, null)
+            if (uniqueID == null) {
+                uniqueID = UUID.randomUUID().toString()
+                val editor = sharedPrefs.edit()
+                editor.putString(PREF_UNIQUE_ID, uniqueID)
+                editor.commit()
+            }
+        }
+        return uniqueID
     }
 }
