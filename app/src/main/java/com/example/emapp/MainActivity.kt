@@ -19,6 +19,8 @@ import androidx.core.app.ActivityCompat
 import com.example.emapp.adapters.DeviceItemAdapter
 import com.example.emapp.model.Device
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.functions.FirebaseFunctions
+import com.google.gson.Gson
 import kotlinx.android.synthetic.main.activity_main.*
 import java.util.*
 import kotlin.collections.ArrayList
@@ -37,6 +39,7 @@ class MainActivity : AppCompatActivity() {
     private var devicesList = ArrayList<Device>()
     private lateinit var deviceAdapter: DeviceItemAdapter
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
+    private val mFunctions: FirebaseFunctions = FirebaseFunctions.getInstance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,7 +71,6 @@ class MainActivity : AppCompatActivity() {
             devicesLv.adapter = deviceAdapter
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION), MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION)
             updateShopClient()
-            initShopClientListener()
         } else {
             bluetoothStatusTv.text = "Bluetooth is not supported"
         }
@@ -91,41 +93,29 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }, 0)
-
     }
 
     private fun updateShopClient() {
         val shopClient: MutableMap<String, Any> = HashMap()
-        shopClient["devices"] = discoveryDevicesList
+        shopClient["devices"] = Gson().toJson(discoveryDevicesList)
         shopClient["name"] = bAdapter.name
 
-        db.collection("Shops").document(uniqueID!!)
-            .set(shopClient)
-            .addOnSuccessListener { Log.d(TAG_FIREBASE,"DocumentSnapshot added with ID: ") }
-            .addOnFailureListener { e -> Log.w(TAG_FIREBASE, "Error adding document", e) }
-    }
-
-    private fun initShopClientListener() {
-        val docRef = db.collection("Shops").document(uniqueID!!)
-        docRef.addSnapshotListener { snapshot, e ->
-            if (e != null) {
-                Log.w(TAG_FIREBASE, "Listen failed.", e)
-                return@addSnapshotListener
-            }
-
-            if (snapshot != null && snapshot.exists()) {
-                Log.d(TAG_FIREBASE, "Current data: ${snapshot.data}")
+        val request: MutableMap<String, Any> = HashMap()
+        request["documentId"] = uniqueID!!
+        request["data"] = shopClient
+        mFunctions
+            .getHttpsCallable("checkRegisteredDevices")
+            .call(request)
+            .continueWith { task ->
+                val result = task.result?.data as ArrayList<HashMap<String, Any>>
+                Log.d(TAG_FIREBASE, "Current data: ${result.toString()}")
                 devicesTv.text = "Devices"
                 devicesList.clear()
-                val devices = snapshot.data!!["devices"] as ArrayList<HashMap<String, Any>>
-                devices.forEach {
+                result.forEach {
                     devicesList.add(Device(it["deviceAddress"] as String, it["name"] as String, it["registered"] as Boolean))
                 }
                 deviceAdapter.notifyDataSetChanged()
-            } else {
-                Log.d(TAG_FIREBASE, "Current data: null")
             }
-        }
     }
 
     private val mReceiver: BroadcastReceiver = object : BroadcastReceiver() {
