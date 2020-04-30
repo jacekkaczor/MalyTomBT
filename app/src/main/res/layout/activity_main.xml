@@ -34,6 +34,15 @@
         android:minWidth="200dp"
         android:onClick="turnOnOffBtnOnClick"/>
 
+    <Button
+        android:id="@+id/setNotificationBtn"
+        style="@style/Widget.AppCompat.Button.Colored"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minWidth="200dp"
+        android:onClick="setNotificationBtnOnClick"
+        android:text="Set daily notification" />
+
     <TextView
         android:id="@+id/devicesTv"
         android:layout_width="match_parent"

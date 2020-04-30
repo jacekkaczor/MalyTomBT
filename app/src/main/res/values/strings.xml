@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Mały Tom BT</string>
+    <string name="setNotification">Set daily notification</string>
+    <string name="title">Title</string>
+    <string name="message">Message</string>
+    <string name="time">Time</string>
+    <string name="save">Save</string>
 </resources>

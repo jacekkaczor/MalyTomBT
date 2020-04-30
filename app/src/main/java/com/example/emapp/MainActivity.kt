@@ -152,6 +152,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun setNotificationBtnOnClick(v: View) {
+        val intent = Intent(this, SetNotification::class.java)
+        startActivity(intent)
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         when(requestCode) {
             REQUEST_CODE_ENABLE_BT ->
